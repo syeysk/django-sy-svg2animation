@@ -3,7 +3,8 @@ from io import BytesIO, StringIO
 import cairosvg
 from svgpathtools import svg2paths2, disvg
 from svgpathtools.path import Path
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
+import tinycss2
 
 from svg_to_paths import svg2paths2
 from tools import svg2animation_shell
@@ -34,6 +35,9 @@ def svg2animation(input_file, output_file):
         file_obj=input_file,
         write_to=None,
     )
+    with open('middle.svg', 'wb') as f:
+        f.write(_file_path)
+
     _file_path = BytesIO(_file_path)
 
     paths, attributes, svg_attributes = svg2paths2(_file_path)
@@ -41,17 +45,51 @@ def svg2animation(input_file, output_file):
     frames = []
     for path_index in range(len(paths)):
         new_attributes = attributes[:path_index+1]
+        only_background = False
+
+        # source_attributes = new_attributes[-1].copy()
+        source_fill_opacity = new_attributes[-1].get('fill-opacity')
         new_attributes[-1]['fill-opacity'] = 0
-        fill = new_attributes[-1].get('fill')
-        if fill:
-            del new_attributes[-1]['fill']
+        source_fill = new_attributes[-1].get('fill')
+        new_attributes[-1]['fill'] = 'none'
+
+        source_style = new_attributes[-1].get('style')
+        if source_style:
+            rules = tinycss2.parse_declaration_list(source_style, skip_whitespace=True)
+
+            fill_color = None
+            stroke_color = None
+            for rule in rules:
+                if rule.name == 'fill-opacity':
+                    rule.value = [tinycss2.ast.NumberToken(line=None, column=None, value=None, int_value=None, representation='0')]
+                elif rule.name == 'fill':
+                    fill_color = tinycss2.serialize(rule.value)
+                    if fill_color == stroke_color:
+                        print('--')
+                        only_background = True
+                elif rule.name == 'stroke':
+                    stroke_color = tinycss2.serialize(rule.value)
+                    if fill_color == stroke_color or stroke_color == 'none':
+                        print('--')
+                        only_background = True
+
+            new_attributes[-1]['style'] = tinycss2.serialize(rules)
 
         for line_index in range(len(paths[path_index])+1):
+            if only_background:
+                line_index = len(paths[path_index])
+
             if line_index == len(paths[path_index]):
                 line_index -= 1
-                del new_attributes[-1]['fill-opacity']
-                if fill:
-                    new_attributes[-1]['fill'] = fill
+
+                if source_fill_opacity is not None:
+                    new_attributes[-1]['fill-opacity'] = source_fill_opacity
+
+                if source_fill is not None:
+                    new_attributes[-1]['fill'] = source_fill
+
+                if source_style is not None:
+                    new_attributes[-1]['style'] = source_style
 
             new_paths = (
                 paths[:path_index]
@@ -62,7 +100,20 @@ def svg2animation(input_file, output_file):
                 new_attributes,
                 svg_attributes,
             )
-            frames.append(Image.open(png_file))
+            image = Image.open(png_file)
+            # ------>
+            # name = '{}-{}'.format(str(path_index).rjust(4, '0'), str(line_index).rjust(4, '0'))
+            # with open(f'png/{name}.png', 'wb') as f:
+            #     f.write(png_file.getvalue())
+
+            # fnt = ImageFont.truetype(size=40)
+            # draw = ImageDraw.Draw(image)
+            # fnt = draw.getfont()
+            # draw.text((70, 70), name, font=fnt)
+            # <------
+            frames.append(image)
+            if only_background:
+                break
 
     if not frames:
         print('    empty')
@@ -73,6 +124,7 @@ def svg2animation(input_file, output_file):
         save_all=True,
         append_images=frames[1:],
         optimize=True,
-        duration=250,
+        duration=200,
         loop=0,
+        disposal=1,
     )
