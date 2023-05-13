@@ -1,3 +1,4 @@
 cairosvg==2.7.0
 Pillow
 svgpathtools
+opencv-python==4.7.0.72
