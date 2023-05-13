@@ -58,6 +58,7 @@ class GIFP2V:
     def __init__(self, output_file, fps, height, width):
         self.frames = []
         self.output_file = output_file
+        self.fps = fps
 
     def add(self, frame):
         """
@@ -83,7 +84,7 @@ class GIFP2V:
                 save_all=True,
                 append_images=self.frames[1:],
                 optimize=True,
-                duration=200,
+                duration=100 / self.fps,
                 loop=0,
                 disposal=1,
             )
@@ -151,16 +152,16 @@ def unset_attributes(attributes):
 
 
 @svg2animation_shell
-def svg2animation(input_file, output_file):
+def svg2animation(input_file, output_file, fps):
     simple_svg = cairosvg.svg2svg(
         file_obj=input_file,
         write_to=None,
     )
     paths, attributes, svg_attributes = svg2paths2(BytesIO(simple_svg))
 
-    converter = OpenCVP2V('1output.wmv', 4, 1200, 800)
-    # converter = OpenCVP2V('1output.mp4', 4, 528, 479)
-    # converter = GIFP2V(output_file, 8, 528, 479)
+    converter = OpenCVP2V('1output.wmv', fps, 1200, 800)
+    # converter = OpenCVP2V('1output.mp4', fps, 528, 479)
+    # converter = GIFP2V(output_file, fps, 528, 479)
 
     # vr = cv2.VideoWriter('1output.webp', fourcc, 8, (600, 692))
     # vr = cv2.VideoWriter('1output.gif', fourcc, 8, (528, 479), True)
