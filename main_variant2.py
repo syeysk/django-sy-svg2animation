@@ -1,6 +1,6 @@
 import os.path
 from io import BytesIO, StringIO
-
+from xml.dom.minidom import parse
 
 import cairosvg
 import tinycss2
@@ -18,7 +18,7 @@ from tools import svg2animation_shell
 class OpenCVP2V:
     """OpenCV pictures to video converter"""
 
-    def __init__(self, output_filename, fps, height, width):
+    def __init__(self, output_filename, fps, width, height):
         _, ext = os.path.splitext(output_filename)
         if ext == '.avi':
             fourcc_str = 'MJPG'
@@ -36,7 +36,7 @@ class OpenCVP2V:
         # fourcc = cv2.VideoWriter_fourcc(*'X264')
 
         fourcc = cv2.VideoWriter_fourcc(*fourcc_str)
-        self.video_writer = cv2.VideoWriter(output_filename, fourcc, fps, (height, width))
+        self.video_writer = cv2.VideoWriter(output_filename, fourcc, fps, (width, height))
 
     def add(self, frame):
         """
@@ -45,7 +45,6 @@ class OpenCVP2V:
         image_bytes = bytearray(frame.getvalue())
         image_np = np.asarray(image_bytes, dtype='uint8')
         image_frame = cv2.imdecode(image_np, cv2.IMREAD_COLOR)
-        #print(image_frame.shape)
         self.video_writer.write(image_frame)
 
     def finish(self):
@@ -55,7 +54,7 @@ class OpenCVP2V:
 class GIFP2V:
     """GIF pictures to video converter"""
 
-    def __init__(self, output_file, fps, height, width):
+    def __init__(self, output_file, fps, width, height):
         self.frames = []
         self.output_file = output_file
         self.fps = fps
@@ -84,13 +83,13 @@ class GIFP2V:
                 save_all=True,
                 append_images=self.frames[1:],
                 optimize=True,
-                duration=100 / self.fps,
+                duration=int(1000 / self.fps),
                 loop=0,
                 disposal=1,
             )
 
 
-def svg_data2png(paths, attributes, svg_attributes):
+def svg_data2png(paths, attributes, svg_attributes, scale: float):
     drw = disvg(
         paths=paths,
         attributes=attributes,
@@ -105,6 +104,7 @@ def svg_data2png(paths, attributes, svg_attributes):
     cairosvg.svg2png(
         file_obj=svg_file,
         write_to=png_file,
+        scale=scale,
     )
     return png_file
 
@@ -138,12 +138,10 @@ def unset_attributes(attributes):
             elif rule.name == 'fill':
                 fill_color = tinycss2.serialize(rule.value)
                 if fill_color == stroke_color:
-                    print('--')
                     only_background = True
             elif rule.name == 'stroke':
                 stroke_color = tinycss2.serialize(rule.value)
                 if fill_color == stroke_color or stroke_color == 'none':
-                    print('--')
                     only_background = True
 
         attributes['style'] = tinycss2.serialize(rules)
@@ -151,21 +149,58 @@ def unset_attributes(attributes):
     return only_background, source_attributes
 
 
+def calculate_scale(svg_str, final_value: int, field_name: str):
+    """
+    Cite:
+    "One point is the equivalent of 1.333(3) pixels. On the other hand, one pixel is the equivalent of 0.75 points."
+    Source: https://simplecss.eu/pxtoems.html
+
+    :param svg_str: svg, which has width and height in pt
+    :param final_value: width or height in px
+    :param field_name: calculate by what field: "width" or "height"
+    :return: tuple like (scale to transform svg, final width and final height)
+    """
+    dom_svg = parse(svg_str)
+    source_width = float(dom_svg.childNodes[0].attributes.get('width').value[:-2])
+    source_height = float(dom_svg.childNodes[0].attributes.get('height').value[:-2])
+
+    if field_name not in ('width', 'height'):
+        raise Exception(f'invalid `field_name`: {field_name}')
+
+    if field_name == 'width':
+        scale = (final_value * 0.75) / source_width
+        return scale, final_value, int(source_height * 1.3333333333333333 * scale)
+    else:
+        scale = (final_value * 0.75) / source_height
+        return scale, int(source_width * 1.3333333333333333 * scale), final_value
+
+
+def calculate_source_size(svg_str):
+    dom_svg = parse(svg_str)
+    source_width = float(dom_svg.childNodes[0].attributes.get('width').value[:-2])
+    source_height = float(dom_svg.childNodes[0].attributes.get('height').value[:-2])
+    return int(source_width * 1.3333333333333333), int(source_height * 1.3333333333333333)
+
+
 @svg2animation_shell
-def svg2animation(input_file, output_file, fps):
+def svg2animation(input_file, output_file, fps, width=None, height=None):
     simple_svg = cairosvg.svg2svg(
         file_obj=input_file,
         write_to=None,
     )
+    simple_svg_io = BytesIO(simple_svg)
+    if width is not None:
+        scale, final_width, final_height = calculate_scale(simple_svg_io, width, 'width')
+    elif height is not None:
+        scale, final_width, final_height = calculate_scale(simple_svg_io, height, 'height')
+    else:
+        scale = 1
+        final_width, final_height = calculate_source_size(simple_svg_io)
+
     paths, attributes, svg_attributes = svg2paths2(BytesIO(simple_svg))
 
-    converter = OpenCVP2V('1output.wmv', fps, 1200, 800)
-    # converter = OpenCVP2V('1output.mp4', fps, 528, 479)
-    # converter = GIFP2V(output_file, fps, 528, 479)
-
-    # vr = cv2.VideoWriter('1output.webp', fourcc, 8, (600, 692))
-    # vr = cv2.VideoWriter('1output.gif', fourcc, 8, (528, 479), True)
-    # avr = cv2.VideoWriter('1output.avi', fourcc, 8, (1465, 891), True)
+    # converter = OpenCVP2V('1output.wmv', fps, final_width, final_height)
+    converter = GIFP2V(output_file, fps, final_width, final_height)
     for path_index in range(len(paths)):
         new_attributes = attributes[:path_index+1]
         only_background, source_attributes = unset_attributes(new_attributes[-1])
@@ -185,6 +220,7 @@ def svg2animation(input_file, output_file, fps):
                 new_paths,
                 new_attributes,
                 svg_attributes,
+                scale=scale,
             )
             converter.add(png_file)
 
