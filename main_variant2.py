@@ -181,12 +181,7 @@ def calculate_source_size(svg_str):
     return int(source_width * 1.3333333333333333), int(source_height * 1.3333333333333333)
 
 
-
-def svg2animation(input_file, output_file, fps, width=None, height=None):
-    simple_svg = cairosvg.svg2svg(
-        file_obj=input_file,
-        write_to=None,
-    )
+def calculate_final_values(simple_svg, width=None, height=None):
     simple_svg_io = BytesIO(simple_svg)
     if width is not None:
         scale, final_width, final_height = calculate_scale(simple_svg_io, width, 'width')
@@ -196,10 +191,18 @@ def svg2animation(input_file, output_file, fps, width=None, height=None):
         scale = 1
         final_width, final_height = calculate_source_size(simple_svg_io)
 
-    paths, attributes, svg_attributes = svg2paths2(BytesIO(simple_svg))
+    return scale, final_width, final_height
 
-    # converter = OpenCVP2V('1output.wmv', fps, final_width, final_height)
-    converter = GIFP2V(output_file, fps, final_width, final_height)
+
+def get_packer(packer_name, output_file, fps, final_width=None, final_height=None):
+    if packer_name == 'gif':
+        return GIFP2V(output_file, fps, final_width, final_height)
+    elif packer_name == 'opencv':
+        return OpenCVP2V('1output.wmv', fps, final_width, final_height)
+
+
+def frame_iterator(input_file, scale):
+    paths, attributes, svg_attributes = svg2paths2(BytesIO(input_file))
     for path_index in range(len(paths)):
         new_attributes = attributes[:path_index+1]
         only_background, source_attributes = unset_attributes(new_attributes[-1])
@@ -221,9 +224,7 @@ def svg2animation(input_file, output_file, fps, width=None, height=None):
                 svg_attributes,
                 scale=scale,
             )
-            converter.add(png_file)
+            yield png_file
 
             if only_background:
                 break
-
-    converter.finish()
