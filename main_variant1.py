@@ -6,7 +6,7 @@ from svgpathtools.path import Path
 from PIL import Image
 
 from svg_to_paths import svg2paths2
-from tools import svg2animation_shell
+from svg2anima import svg2animation_shell
 
 
 def svg2png(paths, attributes, svg_attributes):

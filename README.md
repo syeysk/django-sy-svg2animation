@@ -16,18 +16,18 @@ For Windows you need to install [GTK3](https://github.com/tschoonj/GTK-for-Windo
 Run tne command to convert svg-picture to gif-animates:
 
 ```sh
-python3 main_variant1.py --fps 12 --width 1280 filename1.svg filenameN.svg dir_for_result
+python3 svg2anima.py --fps 12 --width 1280 filename1.svg filenameN.svg dir_for_result
 ```
 
 or
 
 ```sh
-python3 main_variant1.py --fps 12 --height 680 filename1.svg filenameN.svg dir_for_result
+python3 svg2anima.py --fps 12 --height 680 filename1.svg filenameN.svg dir_for_result
 ```
 
 The result will be saved in `dir_for_result` directory for every picture.
 
-## Drawing algorytm
+## Drawing algorithm
 
 Каждый контур — это ломанная линия либо дуга. Для упрощения назовём их линией.
 
