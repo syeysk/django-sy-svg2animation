@@ -12,7 +12,6 @@ import cv2
 import numpy as np
 
 from svg_to_paths import svg2paths2
-from tools import svg2animation_shell
 
 
 class OpenCVP2V:
@@ -182,7 +181,7 @@ def calculate_source_size(svg_str):
     return int(source_width * 1.3333333333333333), int(source_height * 1.3333333333333333)
 
 
-@svg2animation_shell
+
 def svg2animation(input_file, output_file, fps, width=None, height=None):
     simple_svg = cairosvg.svg2svg(
         file_obj=input_file,

@@ -1,8 +1,10 @@
 import os.path
 from argparse import ArgumentParser
 
+from main_variant2 import svg2animation
 
-def svg2animation_shell(svg2animation):
+
+if __name__ == '__manin__':
     parser = ArgumentParser(
         description='This program converts svg picture to gif animation',
     )
