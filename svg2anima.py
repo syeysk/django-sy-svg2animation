@@ -18,7 +18,7 @@ def svg2animation(input_file, output_file, packer_name, fps, duration=None, widt
         for frame in frame_iterator(simple_svg, scale):
             frames.append(frame)
 
-        fps = len(frames) // duration
+        fps = len(frames) / duration
         packer = get_frame_packer(packer_name, output_file, fps, final_width, final_height)
         for frame in frames:
             packer.add(frame)
