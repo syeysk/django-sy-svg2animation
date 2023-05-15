@@ -194,7 +194,7 @@ def calculate_final_values(simple_svg, width=None, height=None):
     return scale, final_width, final_height
 
 
-def get_packer(packer_name, output_file, fps, final_width=None, final_height=None):
+def get_frame_packer(packer_name, output_file, fps, final_width=None, final_height=None):
     if packer_name == 'gif':
         return GIFP2V(output_file, fps, final_width, final_height)
     elif packer_name == 'opencv':
