@@ -44,7 +44,6 @@ class OpenCVP2V:
         image_bytes = bytearray(frame.getvalue())
         image_np = np.asarray(image_bytes, dtype='uint8')
         image_frame = cv2.imdecode(image_np, cv2.IMREAD_COLOR)
-        print(image_frame.shape)
         self.video_writer.write(image_frame)
 
     def finish(self):
