@@ -44,6 +44,7 @@ class OpenCVP2V:
         image_bytes = bytearray(frame.getvalue())
         image_np = np.asarray(image_bytes, dtype='uint8')
         image_frame = cv2.imdecode(image_np, cv2.IMREAD_COLOR)
+        print(image_frame.shape)
         self.video_writer.write(image_frame)
 
     def finish(self):
@@ -147,48 +148,25 @@ def unset_attributes(attributes):
     return only_background, source_attributes
 
 
-def calculate_scale(svg_str, final_value: int, field_name: str):
-    """
-    Cite:
-    "One point is the equivalent of 1.333(3) pixels. On the other hand, one pixel is the equivalent of 0.75 points."
-    Source: https://simplecss.eu/pxtoems.html
-
-    :param svg_str: svg, which has width and height in pt
-    :param final_value: width or height in px
-    :param field_name: calculate by what field: "width" or "height"
-    :return: tuple like (scale to transform svg, final width and final height)
-    """
-    dom_svg = parse(svg_str)
-    source_width = float(dom_svg.childNodes[0].attributes.get('width').value[:-2])
-    source_height = float(dom_svg.childNodes[0].attributes.get('height').value[:-2])
-
-    if field_name not in ('width', 'height'):
-        raise Exception(f'invalid `field_name`: {field_name}')
-
-    if field_name == 'width':
-        scale = (final_value * 0.75) / source_width
-        return scale, final_value, int(source_height * 1.3333333333333333 * scale)
-    else:
-        scale = (final_value * 0.75) / source_height
-        return scale, int(source_width * 1.3333333333333333 * scale), final_value
-
-
-def calculate_source_size(svg_str):
-    dom_svg = parse(svg_str)
-    source_width = float(dom_svg.childNodes[0].attributes.get('width').value[:-2])
-    source_height = float(dom_svg.childNodes[0].attributes.get('height').value[:-2])
-    return int(source_width * 1.3333333333333333), int(source_height * 1.3333333333333333)
-
-
 def calculate_final_values(simple_svg, width=None, height=None):
     simple_svg_io = BytesIO(simple_svg)
+
+    dom_svg = parse(simple_svg_io)
+    source_width = float(dom_svg.childNodes[0].attributes.get('width').value[:-2])
+    source_height = float(dom_svg.childNodes[0].attributes.get('height').value[:-2])
+
     if width is not None:
-        scale, final_width, final_height = calculate_scale(simple_svg_io, width, 'width')
+        scale = (width * 0.75) / source_width
+        final_width = width
+        final_height = int(source_height * 1.3333333333333333 * scale)
     elif height is not None:
-        scale, final_width, final_height = calculate_scale(simple_svg_io, height, 'height')
+        scale = (height * 0.75) / source_height
+        final_width = int(source_width * 1.3333333333333333 * scale)
+        final_height = height
     else:
         scale = 1
-        final_width, final_height = calculate_source_size(simple_svg_io)
+        final_width = int(source_width * 1.3333333333333333)
+        final_height = int(source_height * 1.3333333333333333)
 
     return scale, final_width, final_height
 
