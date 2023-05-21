@@ -45,10 +45,15 @@ if __name__ == '__main__':
     parser.add_argument('--height', type=int, default=None, help='height of video, pixels')
     parser.add_argument('--packer', type=str, default='opencv')
     args = parser.parse_args()
+
+    output_dir = args.output_dir[0]
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
     for input_file_path in args.input_files:
         print('Processing:', input_file_path)
         file_name = os.path.basename(input_file_path)
-        output_file_path = os.path.join(args.output_dir[0], f'{file_name}.gif')
+        output_file_path = os.path.join(output_dir, f'{file_name}.gif')
         with open(input_file_path, 'rb') as input_file, open(output_file_path, 'wb') as output_file:
             svg2animation(input_file, output_file, args.packer, args.fps, args.duration, args.width, args.height)
             print('Ready')
