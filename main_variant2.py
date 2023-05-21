@@ -98,10 +98,9 @@ def svg_data2png(paths, attributes, svg_attributes, scale: float):
     svg_file = StringIO()
     drw.write(svg_file)
 
-    svg_file = BytesIO(svg_file.getvalue().encode('utf-8'))
     png_file = BytesIO()
     cairosvg.svg2png(
-        file_obj=svg_file,
+        bytestring=svg_file.getvalue().encode(),
         write_to=png_file,
         scale=scale,
     )
