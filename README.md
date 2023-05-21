@@ -30,7 +30,7 @@ The result will be saved in `dir_for_result` directory for every picture.
 Real command, which I use for test:
 
 ```sh
-python3 svg2anima.py --fps 12 --height 680 files/Flag_Of_Kaltan.svg result
+python3 svg2anima.py --fps 12 --height 680 files/Flag_of_Kaltan.svg result
 ```
 
 ## Drawing algorithm
